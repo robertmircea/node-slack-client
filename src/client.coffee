@@ -568,6 +568,7 @@ class Client extends EventEmitter
             host: @proxy.hostname,
             port: @proxy.port
         }
+        options.agent = tunnelAgent
 
     req = https.request(options)
 
