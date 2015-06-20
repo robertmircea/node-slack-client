@@ -1,6 +1,8 @@
 https       = require 'https'
+url         = require 'url'
 querystring = require 'querystring'
 WebSocket   = require 'ws'
+tunnel      = require 'tunnel'
 Log            = require 'log'
 {EventEmitter} = require 'events'
 
