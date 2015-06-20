@@ -37,6 +37,7 @@ class Client extends EventEmitter
     @_connAttempts  = 0
 
     @logger         = new Log process.env.SLACK_LOG_LEVEL or 'info'
+    @proxy          = if process.env.http_proxy then url.parse(process.env.http_proxy) else null
 
   #
   # Logging in and connection management functions
@@ -97,7 +98,20 @@ class Client extends EventEmitter
     if not @socketUrl
       return false
     else
-      @ws = new WebSocket @socketUrl
+      tunnelAgent = null
+      if @proxy?
+        tunnelFunc = null
+        if url.parse(@socketUrl).protocol is 'wss:'
+          tunnelFunc = if @proxy.protocol is 'https:' then tunnel.httpsOverHttps else tunnel.httpsOverHttp
+        else
+          tunnelFunc = if @proxy.protocol is 'https:' then tunnel.httpOverHttps  else tunnel.httpOverHttp
+
+        tunnelAgent = tunnelFunc {
+          proxy:
+            host: @proxy.hostname,
+            port: @proxy.port
+        }
+      @ws = new WebSocket @socketUrl, null, {agent: tunnelAgent }
       @ws.on 'open', =>
         @_connAttempts = 0
         @_lastPong = Date.now()
@@ -543,6 +557,15 @@ class Client extends EventEmitter
       headers:
         'Content-Type': 'application/x-www-form-urlencoded',
         'Content-Length': post_data.length
+
+    if @proxy?
+        tunnelFunc = if @proxy.protocol is 'https' then tunnel.httpsOverHttps else tunnel.httpsOverHttp
+
+        tunnelAgent = tunnelFunc {
+          proxy:
+            host: @proxy.hostname,
+            port: @proxy.port
+        }
 
     req = https.request(options)
 
